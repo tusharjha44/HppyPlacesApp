@@ -1,4 +1,4 @@
-package com.example.happyplaces
+package com.example.happyplaces.activities
 
 import android.app.Activity
 import android.app.AlertDialog
@@ -16,6 +16,9 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import com.example.happyplaces.R
+import com.example.happyplaces.database.DatabaseHandler
+import com.example.happyplaces.models.HappyPlaceModel
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
@@ -32,6 +35,12 @@ import java.util.*
 class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
 
     private var cal = Calendar.getInstance()
+
+    private var saveImageToInternalStorage: Uri? = null
+
+    private var mLatitude: Double = 0.0
+    private var mLongitude: Double = 0.0
+
 
     companion object{
         private const val GALLERY = 1
@@ -61,8 +70,10 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                 updateDateInView()
             }
 
+        updateDateInView()
         et_date.setOnClickListener(this)
         tv_add_image.setOnClickListener(this)
+        btn_save.setOnClickListener(this)
     }
 
     private fun updateDateInView() {
@@ -91,8 +102,7 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                     "Select photo from Gallery",
                     "Capture photo from camera"
                 )
-                pictureDialog.setItems(pictureDialogItems) {
-                        _, which ->
+                pictureDialog.setItems(pictureDialogItems) { _, which ->
                     when (which) {
                         0 -> choosePhotoFromGallery()
                         1 -> takePhotoFromCamera()
@@ -100,7 +110,47 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                 }
                 pictureDialog.show()
             }
+
+            R.id.btn_save -> {
+                when {
+                    et_title.text.isNullOrEmpty() -> {
+                        Toast.makeText(this, "Please enter title", Toast.LENGTH_SHORT).show()
+                    }
+                    et_description.text.isNullOrEmpty() -> {
+                        Toast.makeText(this, "Please enter description", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                    et_location.text.isNullOrEmpty() -> {
+                        Toast.makeText(this, "Please select location", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                    saveImageToInternalStorage == null -> {
+                        Toast.makeText(this, "Please add image", Toast.LENGTH_SHORT).show()
+                    }
+                    else->{
+                        // Assigning all the values to data model class.
+                        val happyPlaceModel = HappyPlaceModel(
+                            0,
+                            et_title.text.toString(),
+                            saveImageToInternalStorage.toString(),
+                            et_description.text.toString(),
+                            et_date.text.toString(),
+                            et_location.text.toString(),
+                            mLatitude,
+                            mLongitude
+                        )
+                        val dbHandler = DatabaseHandler(this)
+                        val addHappyPlace = dbHandler.addHappyPlace(happyPlaceModel)
+
+                        if (addHappyPlace > 0) {
+                            setResult(Activity.RESULT_OK)
+                            finish()//finishing activity
+                        }
+                    }
+                }
+            }
         }
+
     }
 
     private fun choosePhotoFromGallery() {
@@ -166,8 +216,8 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                     val contentURI = data.data
                     try {
                         val selectedImageBitmap  =MediaStore.Images.Media.getBitmap(this.contentResolver,contentURI)
-                        val saveImgToInternalStorage = saveImageToInternalStorage(selectedImageBitmap)
-                        Log.e("Saved image","Path + $saveImgToInternalStorage")
+                        saveImageToInternalStorage = saveImageToInternalStorage(selectedImageBitmap)
+                        Log.e("Saved image","Path + $saveImageToInternalStorage")
 
                         iv_place_image.setImageBitmap(selectedImageBitmap)
                     }catch (e: IOException){
@@ -177,8 +227,8 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                 }
             }else if(requestCode == CAMERA){
                 val thumbNail: Bitmap = data!!.extras!!.get("data") as Bitmap
-                val saveImgToInternalStorage = saveImageToInternalStorage(thumbNail)
-                Log.e("Saved image","Path + $saveImgToInternalStorage")
+                saveImageToInternalStorage = saveImageToInternalStorage(thumbNail)
+                Log.e("Saved image","Path + $saveImageToInternalStorage")
                 iv_place_image.setImageBitmap(thumbNail)
             }
         }

@@ -4,9 +4,24 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".activities.MainActivity">
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_happy_places_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        tools:visibility="gone"/>
 
+    <TextView
+        android:id="@+id/tv_no_records_available"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textSize="@dimen/no_records_available_text_size"
+        android:text="@string/note_text_no_happy_places_found_yet_kindly_add_one"
+        android:visibility="visible"
+        android:gravity="center"
+        tools:visibility="visible"/>
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddHappyPlaces"
         android:layout_width="wrap_content"
