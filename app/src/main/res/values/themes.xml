@@ -14,7 +14,7 @@
         <!-- Customize your theme here. -->
     </style>
 
-    <style name="CustomNoActionBar" parent="@style/Theme.AppCompat.DayNight.NoActionBar">
+    <style name="CustomNoActionBar" parent="@style/Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:statusBarColor">@color/colorPrimaryDark</item>
     </style>
 
