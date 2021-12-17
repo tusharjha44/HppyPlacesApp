@@ -1,5 +1,6 @@
 package com.example.happyplaces.activities
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.DatePickerDialog
@@ -8,9 +9,12 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.Bitmap
+import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -19,12 +23,20 @@ import android.widget.Toast
 import com.example.happyplaces.R
 import com.example.happyplaces.database.DatabaseHandler
 import com.example.happyplaces.models.HappyPlaceModel
+import com.example.happyplaces.utils.GetAddressFromLatLng
+import com.google.android.gms.location.*
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import kotlinx.android.synthetic.main.activity_add_happy_place.*
+import kotlinx.android.synthetic.main.activity_add_happy_place.iv_place_image
+import kotlinx.android.synthetic.main.activity_happy_place_detail.*
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -43,10 +55,13 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
 
     private var mHappyPlaceDetails : HappyPlaceModel? = null
 
+    private lateinit var mFusedLocationClient: FusedLocationProviderClient
+
     companion object{
         private const val GALLERY = 1
         private const val CAMERA = 2
         private const val IMAGE_DIRECTORY = "HappyPlacesImages"
+        private const val PLACE_AUTOCOMPLETE_REQUEST_CODE = 3
 
     }
 
@@ -63,13 +78,20 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
             onBackPressed()
         }
 
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        if(!Places.isInitialized()){
+            Places.initialize(this@AddHappyPlaceActivity,
+            resources.getString(R.string.google_maps_api_key))
+        }
+
         if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)) {
             mHappyPlaceDetails =
                 intent.getSerializableExtra(MainActivity.EXTRA_PLACE_DETAILS) as HappyPlaceModel
         }
 
         dateSetListener =
-            DatePickerDialog.OnDateSetListener { view, year, monthOfYear, dayOfMonth ->
+            DatePickerDialog.OnDateSetListener { _, year, monthOfYear, dayOfMonth ->
                 cal.set(Calendar.YEAR, year)
                 cal.set(Calendar.MONTH, monthOfYear)
                 cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
@@ -98,6 +120,64 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
         et_date.setOnClickListener(this)
         tv_add_image.setOnClickListener(this)
         btn_save.setOnClickListener(this)
+        et_location.setOnClickListener(this)
+
+    }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationManager: LocationManager =
+            getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
+            LocationManager.NETWORK_PROVIDER
+        )
+    }
+
+    /**
+     * A function to request the current location. Using the fused location provider client.
+     */
+    @SuppressLint("MissingPermission")
+    private fun requestNewLocationData() {
+
+        val mLocationRequest = LocationRequest()
+        mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        mLocationRequest.interval = 0
+        mLocationRequest.fastestInterval = 0
+        mLocationRequest.numUpdates = 1
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        Looper.myLooper()?.let {
+            mFusedLocationClient.requestLocationUpdates(
+                mLocationRequest, mLocationCallback,
+                it
+            )
+        }
+    }
+
+    private val mLocationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val mLastLocation: Location = locationResult.lastLocation
+            mLatitude = mLastLocation.latitude
+            Log.e("Current Latitude", "$mLatitude")
+            mLongitude = mLastLocation.longitude
+            Log.e("Current Longitude", "$mLongitude")
+
+            val addressTask =
+                GetAddressFromLatLng(this@AddHappyPlaceActivity, mLatitude, mLongitude)
+
+            addressTask.setAddressListener(object :
+                GetAddressFromLatLng.AddressListener {
+                override fun onAddressFound(address: String?) {
+                    Log.e("Address ::", "" + address)
+                    et_location.setText(address) // Address is set to the edittext
+                }
+
+                override fun onError() {
+                    Log.e("Get Address ::", "Something is wrong...")
+                }
+            })
+
+            addressTask.getAddress()
+        }
     }
 
     private fun updateDateInView() {
@@ -133,6 +213,43 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                     }
                 }
                 pictureDialog.show()
+            }
+
+            R.id.tv_select_current_location -> {
+
+                if (!isLocationEnabled()) {
+                    Toast.makeText(
+                        this,
+                        "Your location provider is turned off. Please turn it on.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    // This will redirect you to settings from where you need to turn on the location provider.
+                    val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                    startActivity(intent)
+                } else {
+                    Dexter.withActivity(this)
+                        .withPermissions(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                        .withListener(object : MultiplePermissionsListener {
+                            override fun onPermissionsChecked(report: MultiplePermissionsReport?) {
+                                if (report!!.areAllPermissionsGranted()) {
+
+                                    requestNewLocationData()
+                                }
+                            }
+
+                            override fun onPermissionRationaleShouldBeShown(
+                                permissions: MutableList<PermissionRequest>?,
+                                token: PermissionToken?
+                            ) {
+                                showRationalDialogForPermissions()
+                            }
+                        }).onSameThread()
+                        .check()
+                }
             }
 
             R.id.btn_save -> {
@@ -180,6 +297,22 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                             }
                         }
                     }
+                }
+            }
+            R.id.et_location ->{
+                try {
+                    // These are the list of fields which we required is passed
+                    val fields = listOf(
+                        Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG,
+                        Place.Field.ADDRESS
+                    )
+                    // Start the autocomplete intent with a unique request code.
+                    val intent =
+                        Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                            .build(this@AddHappyPlaceActivity)
+                    startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE)
+                }catch (e: IOException){
+                    e.printStackTrace()
                 }
             }
         }
@@ -262,6 +395,11 @@ class AddHappyPlaceActivity : AppCompatActivity(),View.OnClickListener {
                 saveImageToInternalStorage = saveImageToInternalStorage(thumbNail)
                 Log.e("Saved image","Path + $saveImageToInternalStorage")
                 iv_place_image.setImageBitmap(thumbNail)
+            }else if(requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE){
+                val place: Place = Autocomplete.getPlaceFromIntent(data!!)
+                et_location.setText(place.address)
+                mLatitude = place.latLng!!.latitude
+                mLongitude = place.latLng!!.longitude
             }
         }
     }
