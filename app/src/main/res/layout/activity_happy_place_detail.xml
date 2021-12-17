@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -8,12 +8,88 @@
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar_happy_place_detail"
-        android:background="@color/colorPrimary"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        android:background="@color/colorPrimary"
         android:theme="@style/CustomToolBar"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-</FrameLayout>
+    <ScrollView
+        android:id="@+id/sv_main"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_happy_place_detail">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/iv_place_image"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/detail_screen_image_height_size"
+                android:scaleType="centerCrop"
+                android:src="@drawable/detail_screen_image_placeholder"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/detail_screen_description_margin"
+                android:layout_marginTop="@dimen/detail_screen_description_margin"
+                android:layout_marginEnd="@dimen/detail_screen_description_margin"
+                android:textColor="@color/detail_screen_description_text_color"
+                android:textSize="@dimen/detail_screen_description_text_size"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.533"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/iv_place_image"
+                tools:text="Description" />
+
+            <TextView
+                android:id="@+id/tv_location"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/detail_screen_location_marginStartEnd"
+                android:layout_marginTop="@dimen/detail_screen_location_marginTop"
+                android:layout_marginEnd="@dimen/detail_screen_location_marginStartEnd"
+                android:textColor="@color/colorAccent"
+                android:textSize="@dimen/detail_screen_location_text_size"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.533"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_description"
+                tools:text="Location" />
+
+            <Button
+                android:id="@+id/btn_view_on_map"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginStart="@dimen/detail_screen_btn_view_on_map_marginStartEnd"
+                android:layout_marginTop="@dimen/detail_screen_btn_view_on_map_marginTop"
+                android:layout_marginEnd="@dimen/detail_screen_btn_view_on_map_marginStartEnd"
+                android:background="@drawable/shape_button_rounded"
+                android:gravity="center"
+                android:paddingTop="@dimen/detail_screen_btn_view_on_map_PaddingTopBottom"
+                android:paddingBottom="@dimen/detail_screen_btn_view_on_map_PaddingTopBottom"
+                android:text="@string/btn_text_view_on_map"
+                android:textColor="@color/white_color"
+                android:textSize="@dimen/detail_screen_btn_view_on_map_text_size"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="1.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_location" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>
